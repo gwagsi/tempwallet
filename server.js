@@ -269,6 +269,53 @@ console.log('User wallet updated', currentBalance);
     }
 });
 
+app.get('/wallets/wallet-info', async (req, res) => {
+    try {
+        // Get a connection from the pool
+        const connection = await pool.getConnection();
+
+        // Get wallet information for the authenticated user
+        const [userResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [req.user.user_id]);
+
+        if (!userResult || userResult.length === 0) {
+            connection.release();
+            return res.status(400).json({ message: 'User not found' });
+        }
+
+        // Release the connection back to the pool
+        connection.release();
+
+        // Send the wallet information in the response
+        res.json({ wallet: userResult[0].wallet });
+    } catch (error) {
+        console.error(error);
+        // Release the connection back to the pool in case of an error
+        connection.release();
+        return res.status(500).json({ message: 'Error getting wallet information' });
+    }
+});
+app.get('/wallets/transaction-history', async (req, res) => {
+    try {
+        // Get a connection from the pool
+        const connection = await pool.getConnection();
+
+        // Get transaction history for the authenticated user
+        const [transactionResult] = await connection.execute('SELECT * FROM transactions WHERE sender_id = ? OR recipient_id = ? ORDER BY time DESC', [req.user.user_id, req.user.user_id]);
+
+        // Release the connection back to the pool
+        connection.release();
+
+        // Send the transaction history in the response
+        res.json({ transactions: transactionResult });
+    } catch (error) {
+        console.error(error);
+        // Release the connection back to the pool in case of an error
+        connection.release();
+        return res.status(500).json({ message: 'Error getting transaction history' });
+    }
+});
+
+
 
 // Start the server
 app.listen(PORT, () => {
