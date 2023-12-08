@@ -18,7 +18,7 @@ const pool = mysql.createPool({
 });
 
 // Middleware to parse JSON in request body
-app.use(bodyParser.json());
+app.use(express.json());
 
 // Initialize database schema
 async function initializeDatabase() {
