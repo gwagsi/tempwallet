@@ -119,9 +119,13 @@ app.post('/wallets/signup', async (req, res) => {
         const connection = await pool.getConnection();
 
         // Insert user data into the database
+        console.log("one");
         const [result] = await connection.execute('INSERT INTO users (phone, password, wallet) VALUES (?, ?, ?)', [phone, password, wallet]);
+        console.log("two");
         const [userResult] = await connection.execute('SELECT * FROM users WHERE phone = ?', [phone]);
+        console.log("three");
         const user = userResult[0];
+        console.log("four");    
         // Release the connection back to the pool
         connection.release();
         const token = jwt.sign({ user_id: user.id }, SECRET_KEY, { expiresIn: '1h' });
