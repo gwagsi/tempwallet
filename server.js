@@ -67,6 +67,7 @@ initializeDatabase();
 
 app.post('/wallets/signin', async (req, res) => {
     const { phone, password } = req.body;
+    console.log(req.body);
     console.log('phone', phone);
     console.log('password', password);
 
