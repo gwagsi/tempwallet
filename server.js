@@ -109,6 +109,7 @@ console.log('userResult', userResult);
 });
 // Endpoint to sign up
 app.post('/wallets/signup', async (req, res) => {
+    console.log('req.body', req.body);
     const { phone, password } = req.body;
     const wallet = (Math.floor(Math.random() * 10000000) / 100).toFixed(2);
 
