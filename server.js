@@ -269,31 +269,75 @@ console.log('User wallet updated', currentBalance);
     }
 });
 
-app.get('/wallets/wallet-info', async (req, res) => {
+// Endpoint to get user information
+app.get('/wallets/user-info', async (req, res) => {
     try {
         // Get a connection from the pool
         const connection = await pool.getConnection();
 
-        // Get wallet information for the authenticated user
-        const [userResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [req.user.user_id]);
+        // Get user information based on user ID from the token
+        const [userResult] = await connection.execute('SELECT * FROM users WHERE id = ?', [req.user.user_id]);
 
         if (!userResult || userResult.length === 0) {
+            // Release the connection back to the pool
             connection.release();
-            return res.status(400).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'User not found' });
         }
+
+        const user = userResult[0];
 
         // Release the connection back to the pool
         connection.release();
 
-        // Send the wallet information in the response
-        res.json({ wallet: userResult[0].wallet });
+        res.json({
+            user_id: user.id,
+            phone: user.phone,
+            wallet: user.wallet,
+            // Add more fields as needed
+        });
     } catch (error) {
         console.error(error);
         // Release the connection back to the pool in case of an error
         connection.release();
-        return res.status(500).json({ message: 'Error getting wallet information' });
+        return res.status(500).json({ message: 'Error retrieving user information' });
     }
 });
+// Endpoint to get user information by phone number
+app.get('/wallets/user-info/:phone', async (req, res) => {
+    const { phone } = req.params;
+
+    try {
+        // Get a connection from the pool
+        const connection = await pool.getConnection();
+
+        // Get user information based on phone number
+        const [userResult] = await connection.execute('SELECT * FROM users WHERE phone = ?', [phone]);
+
+        if (!userResult || userResult.length === 0) {
+            // Release the connection back to the pool
+            connection.release();
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const user = userResult[0];
+
+        // Release the connection back to the pool
+        connection.release();
+
+        res.json({
+            user_id: user.id,
+            phone: user.phone,
+            wallet: user.wallet,
+            // Add more fields as needed
+        });
+    } catch (error) {
+        console.error(error);
+        // Release the connection back to the pool in case of an error
+        connection.release();
+        return res.status(500).json({ message: 'Error retrieving user information' });
+    }
+});
+
 app.get('/wallets/transaction-history', async (req, res) => {
     try {
         // Get a connection from the pool
