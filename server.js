@@ -188,6 +188,8 @@ app.post('/wallets/transaction-history', async (req, res) => {
         }
 
         const userId = userResult[0].id;
+        const [allTransactions] = await connection.execute('SELECT * FROM transactions');
+console.log(allTransactions);
         try {
             const [transactionResult] = await connection.execute('SELECT * FROM transactions WHERE sender_id = ? OR recipient_id = ? ORDER BY time DESC', [userId, userId]);
             // ...
