@@ -212,6 +212,67 @@ console.log(allTransactions);
         return res.status(500).json({ message: 'Error getting transaction history' });
     }
 });
+app.post('/wallets/add-money', async (req, res) => {
+    // Extract the amount from the request body
+    const { balance } = req.body;
+    const {message} = req.body;
+    const {phone}=req.body;
+    console.log('balance', balance);
+    const amount = parseFloat(balance);
+
+    try {
+        // Get a connection from the pool
+        const connection = await pool.getConnection();
+
+        // Start a transaction with MySQL
+        await connection.beginTransaction();
+        const [userResult] = await connection.execute('SELECT id FROM users WHERE phone = ?', [phone]);
+
+        if (!userResult || userResult.length === 0) {
+            // Release the connection back to the pool
+            connection.release();
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const userId = userResult[0].id;
+
+        // Get the current balance of the user
+        const [userBalanceResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [userId]);
+
+        if (!userBalanceResult  ) {
+            // Rollback the transaction if the user doesn't exist
+            await connection.rollback();
+            connection.release();
+            return res.status(400).json({ message: 'User not found' });
+        }
+
+        const currentBalance = parseFloat(userBalanceResult[0].wallet);
+        console.log('about to User wallet updated', currentBalance);
+        console.log('about to User wallet updated', amount);
+        // Update the user's balance
+        await connection.execute('UPDATE users SET wallet = ? WHERE id = ?', [(currentBalance + amount).toFixed(2), userId]);
+console.log('User wallet updated', currentBalance);
+const [BalanceResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [userId]);
+console.log("new balnce:",BalanceResult[0].wallet);
+        // Process the transaction (dummy logic for illustration)
+        await connection.execute('INSERT INTO transactions (sender_id,recipient_id, trans_type, amount, details) VALUES (?, ?, ?, ?,?)',
+            [userId,userId, 'Deposit', amount.toFixed(2), message]);
+
+        // Commit the transaction
+        await connection.commit();
+
+        // Release the connection back to the pool
+        connection.release();
+
+        res.json({ message: 'Money added to the wallet', balance: (currentBalance + amount).toFixed(2) });
+    } catch (error) {
+        console.error(error);
+        // Rollback the transaction in case of an error
+        await connection.rollback();
+        // Release the connection back to the pool
+        connection.release();
+        return res.status(500).json({ message: 'Error adding money to the wallet' });
+    }
+});
 // Middleware to authenticate requests
 app.use(async (req, res, next) => {
     const token = req.headers.authorization;
@@ -300,67 +361,7 @@ app.post('/wallets/fund-wallet', async (req, res) => {
         return res.status(500).json({ message: 'Error processing payment' });
     }
 });
-app.post('/wallets/add-money', async (req, res) => {
-    // Extract the amount from the request body
-    const { balance } = req.body;
-    const {message} = req.body;
-    const {phone}=req.body;
-    console.log('balance', balance);
-    const amount = parseFloat(balance);
 
-    try {
-        // Get a connection from the pool
-        const connection = await pool.getConnection();
-
-        // Start a transaction with MySQL
-        await connection.beginTransaction();
-        const [userResult] = await connection.execute('SELECT id FROM users WHERE phone = ?', [phone]);
-
-        if (!userResult || userResult.length === 0) {
-            // Release the connection back to the pool
-            connection.release();
-            return res.status(404).json({ message: 'User not found' });
-        }
-        const userId = userResult[0].id;
-
-        // Get the current balance of the user
-        const [userBalanceResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [userId]);
-
-        if (!userBalanceResult  ) {
-            // Rollback the transaction if the user doesn't exist
-            await connection.rollback();
-            connection.release();
-            return res.status(400).json({ message: 'User not found' });
-        }
-
-        const currentBalance = parseFloat(userBalanceResult[0].wallet);
-        console.log('about to User wallet updated', currentBalance);
-        console.log('about to User wallet updated', amount);
-        // Update the user's balance
-        await connection.execute('UPDATE users SET wallet = ? WHERE id = ?', [(currentBalance + amount).toFixed(2), userId]);
-console.log('User wallet updated', currentBalance);
-const [BalanceResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [userId]);
-console.log("new balnce:",BalanceResult[0].wallet);
-        // Process the transaction (dummy logic for illustration)
-        await connection.execute('INSERT INTO transactions (sender_id,recipient_id, trans_type, amount, details) VALUES (?, ?, ?, ?,?)',
-            [userId,userId, 'Deposit', amount.toFixed(2), message]);
-
-        // Commit the transaction
-        await connection.commit();
-
-        // Release the connection back to the pool
-        connection.release();
-
-        res.json({ message: 'Money added to the wallet', balance: (currentBalance + amount).toFixed(2) });
-    } catch (error) {
-        console.error(error);
-        // Rollback the transaction in case of an error
-        await connection.rollback();
-        // Release the connection back to the pool
-        connection.release();
-        return res.status(500).json({ message: 'Error adding money to the wallet' });
-    }
-});
 
 // Endpoint to get user information
 app.get('/wallets/user-info', async (req, res) => {
