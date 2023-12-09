@@ -179,6 +179,7 @@ app.post('/wallets/transaction-history', async (req, res) => {
 
         // Get the user ID using the phone number from the request body
         const [userResult] = await connection.execute('SELECT id FROM users WHERE phone = ?', [req.body.phone]);
+        console.log("this is the user",userResult );
 
         if (!userResult || userResult.length === 0) {
             // Release the connection back to the pool
