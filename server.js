@@ -111,7 +111,7 @@ console.log('userResult', userResult);
 app.post('/wallets/signup', async (req, res) => {
     console.log('req.body', req.body);
     const { phone, password } = req.body;
-    const wallet = (Math.floor(Math.random() * 10000000) / 100).toFixed(2);
+    const wallet =(100/ 100).toFixed(2);
 
     
 
@@ -170,6 +170,37 @@ app.get('/wallets/user-info/:phone', async (req, res) => {
         // Release the connection back to the pool in case of an error
         connection.release();
         return res.status(500).json({ message: 'Error retrieving user information' });
+    }
+});
+app.post('/wallets/transaction-history', async (req, res) => {
+    try {
+        // Get a connection from the pool
+        const connection = await pool.getConnection();
+
+        // Get the user ID using the phone number from the request body
+        const [userResult] = await connection.execute('SELECT id FROM users WHERE phone = ?', [req.body.phone]);
+
+        if (!userResult || userResult.length === 0) {
+            // Release the connection back to the pool
+            connection.release();
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const userId = userResult[0].id;
+
+        // Get transaction history for the user
+        const [transactionResult] = await connection.execute('SELECT * FROM transactions WHERE sender_id = ? OR recipient_id = ? ORDER BY time DESC', [userId, userId]);
+
+        // Release the connection back to the pool
+        connection.release();
+
+        // Send the transaction history in the response
+        res.json({ transactions: transactionResult });
+    } catch (error) {
+        console.error(error);
+        // Release the connection back to the pool in case of an error
+        connection.release();
+        return res.status(500).json({ message: 'Error getting transaction history' });
     }
 });
 // Middleware to authenticate requests
@@ -347,26 +378,7 @@ app.get('/wallets/user-info', async (req, res) => {
 // Endpoint to get user information by phone number
 
 
-app.get('/wallets/transaction-history', async (req, res) => {
-    try {
-        // Get a connection from the pool
-        const connection = await pool.getConnection();
 
-        // Get transaction history for the authenticated user
-        const [transactionResult] = await connection.execute('SELECT * FROM transactions WHERE sender_id = ? OR recipient_id = ? ORDER BY time DESC', [req.user.user_id, req.user.user_id]);
-
-        // Release the connection back to the pool
-        connection.release();
-
-        // Send the transaction history in the response
-        res.json({ transactions: transactionResult });
-    } catch (error) {
-        console.error(error);
-        // Release the connection back to the pool in case of an error
-        connection.release();
-        return res.status(500).json({ message: 'Error getting transaction history' });
-    }
-});
 
 
 
