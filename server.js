@@ -188,12 +188,18 @@ app.post('/wallets/transaction-history', async (req, res) => {
         }
 
         const userId = userResult[0].id;
-
+        try {
+            const [transactionResult] = await connection.execute('SELECT * FROM transactions WHERE sender_id = ? OR recipient_id = ? ORDER BY time DESC', [userId, userId]);
+            // ...
+        } catch (error) {
+            console.error('Error executing query:', error);
+          }
         // Get transaction history for the user
         const [transactionResult] = await connection.execute('SELECT * FROM transactions WHERE sender_id = ? OR recipient_id = ? ORDER BY time DESC', [userId, userId]);
 
         // Release the connection back to the pool
         connection.release();
+
 
         // Send the transaction history in the response
         res.json({ transactions: transactionResult });
