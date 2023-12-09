@@ -304,6 +304,7 @@ app.post('/wallets/add-money', async (req, res) => {
     // Extract the amount from the request body
     const { balance } = req.body;
     const {message} = req.body;
+    const {phone}=req.body;
     console.log('balance', balance);
     const amount = parseFloat(balance);
 
@@ -313,9 +314,17 @@ app.post('/wallets/add-money', async (req, res) => {
 
         // Start a transaction with MySQL
         await connection.beginTransaction();
+        const [userResult] = await connection.execute('SELECT id FROM users WHERE phone = ?', [phone]);
+
+        if (!userResult || userResult.length === 0) {
+            // Release the connection back to the pool
+            connection.release();
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const userId = userResult[0].id;
 
         // Get the current balance of the user
-        const [userBalanceResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [req.user.user_id]);
+        const [userBalanceResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [userId]);
 
         if (!userBalanceResult  ) {
             // Rollback the transaction if the user doesn't exist
@@ -328,13 +337,13 @@ app.post('/wallets/add-money', async (req, res) => {
         console.log('about to User wallet updated', currentBalance);
         console.log('about to User wallet updated', amount);
         // Update the user's balance
-        await connection.execute('UPDATE users SET wallet = ? WHERE id = ?', [(currentBalance + amount).toFixed(2), req.user.user_id]);
+        await connection.execute('UPDATE users SET wallet = ? WHERE id = ?', [(currentBalance + amount).toFixed(2), userId]);
 console.log('User wallet updated', currentBalance);
-const [BalanceResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [req.user.user_id]);
+const [BalanceResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [userId]);
 console.log("new balnce:",BalanceResult[0].wallet);
         // Process the transaction (dummy logic for illustration)
         await connection.execute('INSERT INTO transactions (sender_id,recipient_id, trans_type, amount, details) VALUES (?, ?, ?, ?,?)',
-            [req.user.user_id,req.user.user_id, 'add_money', amount.toFixed(2), message]);
+            [userId,userId, 'Deposit', amount.toFixed(2), message]);
 
         // Commit the transaction
         await connection.commit();
