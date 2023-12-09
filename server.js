@@ -330,6 +330,8 @@ app.post('/wallets/add-money', async (req, res) => {
         // Update the user's balance
         await connection.execute('UPDATE users SET wallet = ? WHERE id = ?', [(currentBalance + amount).toFixed(2), req.user.user_id]);
 console.log('User wallet updated', currentBalance);
+const [BalanceResult] = await connection.execute('SELECT wallet FROM users WHERE id = ?', [req.user.user_id]);
+console.log(BalanceResult[0].wallet);
         // Process the transaction (dummy logic for illustration)
         await connection.execute('INSERT INTO transactions (sender_id,recipient_id, trans_type, amount, details) VALUES (?, ?, ?, ?,?)',
             [req.user.user_id,req.user.user_id, 'add_money', amount.toFixed(2), message]);
