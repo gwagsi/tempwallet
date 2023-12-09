@@ -273,6 +273,33 @@ console.log("new balnce:",BalanceResult[0].wallet);
         return res.status(500).json({ message: 'Error adding money to the wallet' });
     }
 });
+app.post('/info', async (req, res) => {
+    try {
+        // Get a connection from the pool
+        const connection = await pool.getConnection();
+
+        // Get the phone number from the request body
+        const { phone } = req.body;
+
+        // Get the user info using the phone number
+        const [userResult] = await connection.execute('SELECT * FROM users WHERE phone = ?', [phone]);
+
+        // Release the connection back to the pool
+        connection.release();
+
+        if (!userResult || userResult.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Send the user info in the response
+        res.json(userResult[0]);
+    } catch (error) {
+        console.error(error);
+        // Release the connection back to the pool in case of an error
+        connection.release();
+        return res.status(500).json({ message: 'Error retrieving user info' });
+    }
+});
 // Middleware to authenticate requests
 app.use(async (req, res, next) => {
     const token = req.headers.authorization;
@@ -364,39 +391,7 @@ app.post('/wallets/fund-wallet', async (req, res) => {
 
 
 // Endpoint to get user information
-app.get('/wallets/user-info', async (req, res) => {
-    try {
-        // Get a connection from the pool
-        const connection = await pool.getConnection();
 
-        // Get user information based on user ID from the token
-        const [userResult] = await connection.execute('SELECT * FROM users WHERE id = ?', [req.user.user_id]);
-
-        if (!userResult || userResult.length === 0) {
-            // Release the connection back to the pool
-            connection.release();
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        const user = userResult[0];
-
-        // Release the connection back to the pool
-        connection.release();
-
-        res.json({
-            user_id: user.id,
-            phone: user.phone,
-            wallet: user.wallet,
-            // Add more fields as needed
-        });
-    } catch (error) {
-        console.error(error);
-        // Release the connection back to the pool in case of an error
-        connection.release();
-        return res.status(500).json({ message: 'Error retrieving user information' });
-    }
-});
-// Endpoint to get user information by phone number
 
 
 
