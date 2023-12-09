@@ -275,7 +275,7 @@ console.log("new balnce:",BalanceResult[0].wallet);
 });
 app.post('/info', async (req, res) => {
     try {
-        // Get a connection from the pool
+        console.log(req.body);// Get a connection from the pool
         const connection = await pool.getConnection();
 
         // Get the phone number from the request body
@@ -283,7 +283,7 @@ app.post('/info', async (req, res) => {
 
         // Get the user info using the phone number
         const [userResult] = await connection.execute('SELECT * FROM users WHERE phone = ?', [phone]);
-
+        console.log("here is the usereresult",userResult);
         // Release the connection back to the pool
         connection.release();
 
